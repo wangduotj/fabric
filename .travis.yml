@@ -1,13 +1,11 @@
-# Copyright IBM Corp. All Rights Reserved.
-#
-# SPDX-License-Identifier: Apache-2.0
-#
-
 language: go
 go:
  - 1.7
  - 1.8
  
+ services:
+- docker
+
 git:
   submodules: false
 install:
