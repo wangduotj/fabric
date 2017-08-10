@@ -1,27 +1,17 @@
+sudo: false
+before_install:
+  - export BUNDLE_GEMFILE=$PWD/Gemfile
+  - export TRAVIS_RUBY_VERSION="$(ruby -e 'puts RUBY_VERSION')-travis"
+  - export PATH=~/bin:"$PATH"
 language: go
 go:
- - 1.7
- - 1.8
- 
- services:
-- docker
-
-git:
-  submodules: false
-  
-install:
-      - npm install
- 
-script:
-- docker ps | grep -q blog
-     $ git add .travis.yml 
-     $ git commit -m "Adding docker build steps to Travis"
-     [building-docker-with-travis 2ad7a43] Adding docker build steps to Travis
-     1 file changed, 10 insertions(+), 32 deletions(-)
-     rewrite .travis.yml (72%)
-     $ git push origin building-docker-with-travis
-
-dist: trusty
-test:
-     - npm run test
-
+  - 1.8.1
+script: make test-all
+install: script/bootstrap
+after_success: script/publish-release
+env:
+  global:
+    - AMAZON_S3_BUCKET=ci-cache
+    - AMAZON_ACCESS_KEY_ID=AKIAJQCVTDEWQHRPBPGQ
+    - secure: "XAZv5xyNjWt7F9hG0MZhDANVJ5h/ajEZvfJOEIZRQlE3X5x6oVgI8blLh/MmlRSF0kIyLckcn6t2ccjSOvwN2hca5bwZSjIqoKbJyNe2cmkxfi2432vEOu3Ve6PT5hZWX4R5RgT+xWyMjIJcdF3gUMP7ErXl64aEncBzeW6OoXM="
+    - secure: "eroPaeI0ohBaUjuc/y22VgyN+GDHeWXPIMAZTvSkNZfwL+Oxy861aeawi0zQeduEYon3fSfMBbOxJbrA+6IMU0W+DlR7TTBJ9dbGmeTFCu6ypJRJJtaE5/Kn9PwKjyG6XiPR/YR6818Jiv6yVCLQspjFbhCuKeFoHcu7RAmazKE="
