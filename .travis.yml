@@ -1,64 +1,137 @@
 language: go
-install: true
-sudo: required
-addons:
-  apt:
-    packages:
-      - rsyslog
-      - xmlsec1
-      - rpm
+
 go:
-  - 1.8.3
-  - master
-  env:
-  global:
-    - GOARCH=amd64
-    - GO_FOR_RELEASE=1.8
-    - IMAGE_NAME=tsuru/api
-    jobs:
-  fast_finish: true
-  allow_failures:
-    - go: master
-  include:
-    - stage: test
-      before_script:
-        - rsyslogd &
-        - sleep 1
-      before_install:
-        - git fetch --unshallow || true
-        - sleep 15
-        - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
-        - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0
-        - sudo ifconfig
-        - sudo sysctl -a | grep ipv6.conf
-        - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
-        - echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.0.list
-        - sudo apt-get -qq update
-        - sudo apt-get install -y mongodb-org
-        - sudo service mongod start || true
-        - service mongod status
-        - go env && pwd
-      script: make test
-    - stage: lint
-      script:
-        - while true; do echo .; sleep 30; done &
-        - if [ "${TRAVIS_EVENT_TYPE}" = "push" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then make lint; else make metalint; fi
-    - script: ./misc/check-handlers.sh
-    - script: ./misc/check-events.sh
-    - script: make check-api-doc
-    - stage: deploy
-      script:
-        - CGO_ENABLED=0 go build -ldflags "-X github.com/tsuru/tsuru/cmd.GitHash=`git rev-parse HEAD`" ./cmd/tsurud/
-        - curl https://raw.githubusercontent.com/tsuru/push-to-docker/master/push.sh | bash
-    - script: if [ -n "$TRAVIS_TAG" ]; then curl -sL https://raw.githubusercontent.com/tsuru/push-to-packagecloud/master/push.sh | PACKAGE_NAME=tsuru-server bash; fi
-    - stage: integration-check
-      script: ./misc/trigger-integration.sh
-notifications:
-    slack:
-    rooms:
-      - secure: QJe4k18ACRUP4CDo245vBFu1hpVlcR3JPWjT7NL/vAE/Y5KDn5pNXIREPYIx9F/f8lvjF2RrQxjApeUujRh1PPt2Q53JulvaDCfM5a5SYnk5yoqu3ynlfqU4AOTDa6kzoJ3K4M9X8JhMpOtr3+IOPbwV88FjPvwviZN4p0L/0wc=
-      - secure: PUf33dfseOSrtp8Eoxx7cZoaR+O2zwJ3V++2k3zBXlhZRIntRdyoiZlax2NlKVGPgNMtT1WCQzufGVmvF1GVkkUC+c94wkEG8Qxzzwrcp476+VSfQSla95wFNuAjn0tuhqHommw9CncVUAF+2pfycPR/fmxDfgQaQTL3dsHy66E=
+
+ - 1.7
+
+sudo: required
+
 services:
-  - redis
-  - docker
-  - mongodb
+
+ - docker
+
+env:
+
+    - TEST_TARGET=unit-test
+
+    - TEST_TARGET=behave
+
+    - TEST_TARGET=node-sdk-unit-tests
+
+
+
+
+before_install:
+
+
+
+
+ - echo "Starting Docker Daemon "
+
+ - |
+
+   export TR_PULL_REQUEST="$TRAVIS_PULL_REQUEST" && export GIT_USER="$TRAVIS_REPO_SLUG"
+
+   USER_NAME="$(echo $GIT_USER | cut -d '/' -f 1)" && REPO_NAME="$(echo $GIT_USER | cut -d '/' -f 2)"
+
+   ip="$(ifconfig docker0 | grep "inet addr:" | awk '{print $2}' | cut -d ':' -f 2)"
+
+   port="$(ps -ef | grep docker | awk '{print $10}' | cut -d ':' -f 3 | cut -d '' -f 1)"
+
+   sudo stop docker
+
+   sudo docker daemon -H tcp://0.0.0.0:$port -H unix:///var/run/docker.sock >> dockerlogfile.log 2>&1 &
+
+
+
+install:
+
+
+
+
+ - echo " INSTALLING DEPENDENCIES "
+
+ - |
+
+   cd $HOME/gopath/src/github.com/$USER_NAME/$REPO_NAME
+
+   git clone https://github.com/hyperledger/fabric-baseimage.git
+
+   cd $HOME/gopath/src/github.com/$USER_NAME/$REPO_NAME/fabric-baseimage/scripts/devenv && chmod +x setup.sh && sudo ./setup.sh
+
+   rm -rf ../../../fabric-baseimage
+
+   echo " Compilers & Dependencies "
+
+   sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt-get -qq update && sudo apt-get -qq install g++-4.8 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
+
+   sudo apt-get install build-essential -y
+
+   sudo ldconfig
+
+
+
+before_script:
+
+
+
+
+ - echo " CREATING BASE IMAGE "
+
+ - cd $HOME/gopath/src/github.com/$USER_NAME/$REPO_NAME/scripts && chmod +x foldercopy.sh && ./foldercopy.sh $TR_PULL_REQUEST $USER_NAME $REPO_NAME
+
+ - sudo rm -rf /var/hyperledger/ && sudo mkdir /var/hyperledger/ && sudo chown $USER:$USER /var/hyperledger
+
+ - cd /$HOME/gopath/src/github.com/hyperledger/fabric
+
+ - make linter
+
+
+
+
+script:
+
+
+
+
+ - echo "Executing Tests"
+
+ - cd $HOME/gopath/src/github.com/hyperledger/fabric
+
+ - sed -i -e 's/172.17.0.1:2375\b/'"$ip:$port"'/g' $HOME/gopath/src/github.com/hyperledger/fabric/bddtests/compose-defaults.yml
+
+ - export BEHAVE_OPTS="-D logs=Y -o testsummary.log" #Defined to both jobs.
+
+ - make $TEST_TARGET
+
+
+
+
+after_failure:
+
+
+
+
+ - |
+
+   echo "Click below links to view behave container log files"
+
+   cd $HOME/gopath/src/github.com/hyperledger/fabric
+
+   chmod +x scripts/containerlogs.sh
+
+   sudo ./scripts/containerlogs.sh
+
+
+
+notifications:
+
+
+
+
+  slack: 'hyperledgerproject:azMP8Mw3cfGigXkqi5RujZXr'
+
+  on_success: always
+
+  on_failure: always
+
