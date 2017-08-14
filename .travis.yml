@@ -6,8 +6,8 @@ services:
  - docker
 env:
     #- TEST_TARGET=unit-test
-    #- TEST_TARGET=behave
-    - TEST_TARGET=node-sdk-unit-tests
+    - TEST_TARGET=behave
+    #- TEST_TARGET=node-sdk-unit-tests
 
 before_install:
 
