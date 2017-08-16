@@ -43,9 +43,9 @@ script:
 
  - echo "Executing Tests"
  - cd $HOME/gopath/src/github.com/hyperledger/fabric
- #- sed -i -e 's/10.1.3.205\b/'"$ip:$port"'/g' $HOME/gopath/src/github.com/hyperledger/fabric/bddtests/compose-defaults.yml
- #- export BEHAVE_OPTS="-D logs=Y -o testsummary.log" #Defined to both jobs.
- #- make $TEST_TARGET
+ - sed -i -e 's/172.17.0.1:2375\b/'"$ip:$port"'/g' $HOME/gopath/src/github.com/hyperledger/fabric/bddtests/compose-defaults.yml
+ - export BEHAVE_OPTS="-D logs=Y -o testsummary.log" #Defined to both jobs.
+ - make $TEST_TARGET
 
 after_failure:
 
