@@ -11,7 +11,7 @@ services:
       image: hyperledger/fabric-peer
       environment:
         - CORE_PEER_ADDRESSAUTODETECT=true
-#        - CORE_VM_ENDPOINT=http://172.17.0.1:2375
+        - CORE_VM_ENDPOINT=http://172.17.0.1:2375
         - CORE_LOGGING_LEVEL=DEBUG
         - CORE_PEER_NETWORKID=${CORE_PEER_NETWORKID}
         - CORE_PEER_TLS_ENABLED=true
