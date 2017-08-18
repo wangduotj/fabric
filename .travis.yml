@@ -5,7 +5,7 @@ sudo: required
 services:
  - docker
 env:
-    #- TEST_TARGET=unit-test
+    - TEST_TARGET=unit-test
     - TEST_TARGET=behave
     - TEST_TARGET=node-sdk-unit-tests
 
@@ -31,11 +31,6 @@ install:
    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt-get -qq update && sudo apt-get -qq install g++-4.8 && sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
    sudo apt-get install build-essential -y
    sudo ldconfig
-   sudo python get-pip.py
-   sudo pip install --upgrade pip
-   sudo pip install behave nose docker-compose
-   sudo pip install -I flask python-dateutil pytz pyyaml couchdb flask-cors request pyOpenSSL pysha3 grpcio
-   sudo pip install urllib3 ndg-httpsclient pyasn1 ecdsa python-slugify grpcio-tools jinja2 b3j0f.aop six
    
 before_script:
 
@@ -51,7 +46,7 @@ script:
  - cd $HOME/gopath/src/github.com/hyperledger/fabric
  - sed -i -e 's/172.17.0.1:2375\b/'"$ip:$port"'/g' $HOME/gopath/src/github.com/hyperledger/fabric/bddtests/compose-defaults.yml
  - export BEHAVE_OPTS="-D logs=Y -o testsummary.log" #Defined to both jobs.
- - make $TEST_TARGET
+ #- make $TEST_TARGET
 
 after_failure:
 
